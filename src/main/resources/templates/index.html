@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="https://cdn.jsdelivr.net/npm/node-forge@0.7.0/dist/forge.min.js"></script>
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+</head>
+<body>
+<h1>hello world</h1>
+
+<div>
+    <button type="button" onclick="encryptedStr()"> 解密</button>
+
+    <button type="button" onclick="enAndDecrypt()">加解密测试</button>
+</div>
+</body>
+
+<script>
+
+    function encryptedStr() {
+        let url = "http://localhost:8080/publicKey";
+        $.get(url, function(data){
+            const publicKey = '-----BEGIN PUBLIC KEY-----\n' +  data + '\n-----END PUBLIC KEY-----';
+            const publicK = forge.pki.publicKeyFromPem(publicKey)
+            const message = "rich_li";
+            const encrypted = publicK.encrypt(message, 'RSA-OAEP', {
+                md: forge.md.sha256.create(),
+                mgf1: {
+                    md: forge.md.sha1.create()
+                }
+            })
+            console.log('密文：', encrypted)
+            const base64 = window.btoa(encrypted)
+            console.log('密文base64:',base64)
+            const jsonBase64 = JSON.stringify(base64);
+            console.log("json base64: ", jsonBase64);
+            const postUrl = "http://localhost:8080/decrypt";
+            $.ajax({
+                url : postUrl,
+                type : "POST",
+                data : base64,
+               // contentType : "application/json",
+                success : function(data) {
+                    console.log(data)
+                }
+            });
+        });
+    }
+
+    function enAndDecrypt() {
+        let url = "http://localhost:8080/publicKey";
+        $.get(url, function(data){
+            const publicKey = '-----BEGIN PUBLIC KEY-----\n' +  data + '\n-----END PUBLIC KEY-----';
+            const publicK = forge.pki.publicKeyFromPem(publicKey)
+            const message = "rich_li";
+            const encrypted = publicK.encrypt(message, 'RSA-OAEP')
+            console.log('密文：', encrypted)
+            const base64 = window.btoa(encrypted)
+            console.log('密文base64：', base64)
+
+            let privateKeyURL = "http://localhost:8080/privateKey";
+            $.get(privateKeyURL, function(data){
+                const privateKey = '-----BEGIN PRIVATE KEY-----\n' + data + '\n-----END PRIVATE KEY-----';
+                const privateKeyFromPem = forge.pki.privateKeyFromPem(privateKey);
+                const decrypted = privateKeyFromPem.decrypt(window.atob(base64), 'RSA-OAEP');
+                console.log(decrypted);
+            });
+        });
+    }
+
+   /* const message = 'rich_li';
+    const publicKey = '-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCqM+l9ZWy1Frt6felFFLmfZNls\nVbU1dKpF8Rx83FtKCsztO5k/iV5N9BbfHFUg9Y40b/EK2j/BPc1xlLYAHMXn6563\nXCwZ4IuCxvfOwz9qT9gkKBxkI5b0rnikkSWTGlJEk2PdZ7Plc73Fa+bx3PvuKvMd\ncKWvd80+vt9+b/7hrwIDAQAB\n-----END PUBLIC KEY-----'
+    const publicK = forge.pki.publicKeyFromPem(publicKey)
+    const encrypted = publicK.encrypt(message, 'RSA-OAEP')
+    console.log('密文：', encrypted)
+    const base64 = window.btoa(encrypted)
+    console.log('密文base64：', base64) // 一般会把它转为base64传给后端
+
+
+    const privateKey = '-----BEGIN PRIVATE KEY-----\nMIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAKoz6X1lbLUWu3p9\n6UUUuZ9k2WxVtTV0qkXxHHzcW0oKzO07mT+JXk30Ft8cVSD1jjRv8QraP8E9zXGU\ntgAcxefrnrdcLBngi4LG987DP2pP2CQoHGQjlvSueKSRJZMaUkSTY91ns+VzvcVr\n5vHc++4q8x1wpa93zT6+335v/uGvAgMBAAECgYArxUnou6qnL39rUvIol9ncyfy4\nRZpicuxPLGCdI7Y+ZmSpJciVdGhSN9Gh8xFZdozpo1gj6Fi5A4HQEeR0RvIF9Rgh\nERblj1rRWqxPcsIddOO9VaknQPICWKqEW9+E1bEcyNUblCHA4LGyQwmuEFUb/Tkj\nxAghIHuEBCe0GFiVwQJBAN5i5QSoOIpdFHA0c981E4VhHc/muXwjx1HfE1pcuuFb\nTy3OwEoZdFp3LIjBnBkPRneLTNjo5WTIwrmfsy6VDF8CQQDD7c6d/nKiJwIESlr+\n/idqXAPNR/iS1YX3Nqtk9jgrgf5zULHr2nbk7MDas5S9Z9XPdUmxtnP44dhoGvDk\nzyyxAkB7XBxyQuZqSkvGGjKUhJq5iC/DXddSd35fegEARSQdUktPu7qK4Cfc7vKz\nQcLXW9PZCFqukDJ/f6YU1fPNSTy9AkADQ78hms/GK+g4shR6EzoM56OYlA5sQ+qL\nh/mrIP8mmm/m8/1C9MzuW5OLEVr1HPnPDyE/OM8N4pV8hpZk+Z7BAkEAzaFstazA\nxLzZOBWhvOzzo722glZ7HVezhMocLu7Y3EOXP/nbx09JpU3U7Egp5UVp0aiknh/Q\nez4Cc4ksMedxdA==\n-----END PRIVATE KEY-----\n'
+    const privateK = forge.pki.privateKeyFromPem(privateKey)
+    const temp = window.atob(base64)
+    const decrypted = privateK.decrypt(temp, 'RSA-OAEP')
+    console.log('原文：', decrypted)*/
+</script>
+</html>
